@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ciphertext
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/web.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: HOST
+        value: 0.0.0.0
+      - key: SESSION_COOKIE_SECURE
+        value: "true"

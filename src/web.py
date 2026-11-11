@@ -1,6 +1,7 @@
 import base64
 import binascii
 import json
+import os
 import re
 import secrets
 import sqlite3
@@ -50,9 +51,11 @@ HISTORY_UNLOCK_SECONDS = 5 * 60
 MESSAGE_AUTH_ERROR = "No fue posible verificar el contenido."
 MESSAGE_FILE_FORMAT_ERROR = "Selecciona un archivo PDF, DOCX, XLSX o TXT."
 SESSION_COOKIE = "ciphertext_session"
-SESSION_COOKIE_ATTRIBUTES = (
-    f"; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_MAX_AGE}"
+SESSION_COOKIE_SECURITY_ATTRIBUTES = (
+    "; HttpOnly; SameSite=Strict; Path=/"
+    + ("; Secure" if os.environ.get("SESSION_COOKIE_SECURE", "").lower() == "true" else "")
 )
+SESSION_COOKIE_ATTRIBUTES = f"{SESSION_COOKIE_SECURITY_ATTRIBUTES}; Max-Age={SESSION_MAX_AGE}"
 SESSIONS = {}
 SESSIONS_LOCK = RLock()
 
@@ -116,8 +119,8 @@ class WebHandler(SimpleHTTPRequestHandler):
                     {"ok": True},
                     {
                         "Set-Cookie": (
-                            f"{SESSION_COOKIE}=; HttpOnly; SameSite=Strict; "
-                            "Path=/; Max-Age=0"
+                            f"{SESSION_COOKIE}=;"
+                            f"{SESSION_COOKIE_SECURITY_ATTRIBUTES}; Max-Age=0"
                         )
                     },
                 )
@@ -467,7 +470,10 @@ class WebHandler(SimpleHTTPRequestHandler):
 
 def serve():
     initialize_database(DATABASE_PATH)
-    address = ("127.0.0.1", 8765)
+    address = (
+        os.environ.get("HOST", "127.0.0.1"),
+        int(os.environ.get("PORT", "8765")),
+    )
     server = ThreadingHTTPServer(address, WebHandler)
     print(f"CipherText disponible en http://{address[0]}:{address[1]}")
     print(f"Base de datos local: {DATABASE_PATH}")
