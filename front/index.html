@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6fa">
+  <title>CipherText | Seguridad de la información</title>
+  <link rel="stylesheet" href="/styles.css?v=enterprise-1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="CipherText, inicio">
+      <img class="brand-logo" src="/img/logo.jpg" alt="Logo CipherText">
+      <span class="brand-copy">
+        <strong>CipherText</strong>
+        <small>Plataforma de cifrado seguro</small>
+      </span>
+    </a>
+
+    <div class="topbar-actions is-hidden" id="topbar-actions">
+      <span class="account-name" id="account-name"></span>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation-menu"
+        aria-label="Abrir menú de usuario">
+        <svg class="avatar-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.5" />
+          <path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" />
+        </svg>
+        <span class="menu-indicator" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+      </button>
+
+      <nav class="navigation-menu is-hidden" id="navigation-menu" aria-label="Navegación principal">
+        <div class="menu-heading">Mi espacio</div>
+        <button type="button" data-view="encrypt">
+          <span class="menu-icon">⌘</span>
+          Cifrar y descifrar
+        </button>
+        <button type="button" data-view="history">
+          <span class="menu-icon">◷</span>
+          Historial
+        </button>
+        <button type="button" id="logout-button" class="logout-option">
+          <span class="menu-icon">↪</span>
+          Cerrar sesión
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="auth-view" id="auth-view" aria-labelledby="auth-title">
+      <div class="auth-layout">
+        <div class="auth-heading">
+          <div class="auth-brand-mark">
+            <img src="/img/logo.jpg" alt="CipherText">
+          </div>
+          <p class="eyebrow">ACCESO A LA PLATAFORMA</p>
+          <h1 id="auth-title">Bienvenido a <span>CipherText</span></h1>
+          <p class="intro-copy">
+            Inicia sesión o crea una cuenta para proteger tus mensajes y archivos.
+          </p>
+        </div>
+
+        <form class="auth-card" id="auth-form">
+          <div class="auth-card-heading">
+            <h2>Accede a tu cuenta</h2>
+            <p>Ingresa tus datos para continuar.</p>
+          </div>
+
+          <div class="auth-tabs" role="group" aria-label="Acceso a la plataforma">
+            <button type="button" class="auth-tab is-active" data-auth-mode="login">
+              Iniciar sesión
+            </button>
+            <button type="button" class="auth-tab" data-auth-mode="register">
+              Crear cuenta
+            </button>
+          </div>
+
+          <label class="field-label" for="auth-username">Usuario</label>
+          <input id="auth-username" name="username" type="text" autocomplete="username" minlength="3" maxlength="32"
+            required placeholder="Tu nombre de usuario">
+          <p class="field-note">
+            3–32 caracteres: letras, números, punto, guion o guion bajo.
+          </p>
+
+          <label class="field-label auth-password-label" for="auth-password">
+            Contraseña de la cuenta
+          </label>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8"
+            maxlength="256" required placeholder="Mínimo 8 caracteres">
+          <p class="field-note" id="auth-password-note">
+            Esta contraseña protege tu cuenta y el acceso al historial.
+          </p>
+
+          <button class="primary-button auth-submit" id="auth-submit" type="submit">
+            Iniciar sesión
+          </button>
+          <p class="inline-feedback auth-feedback" id="auth-feedback" aria-live="polite"></p>
+        </form>
+
+        <aside class="video-panel" aria-label="Video sobre el cifrado de datos">
+          <div class="video-panel-heading">
+            <span class="section-kicker">CONOCE LA TECNOLOGÍA</span>
+            <h2>¿Cómo funciona el cifrado?</h2>
+            <p>Una explicación breve sobre la protección de tu información.</p>
+          </div>
+
+          <div class="video-stage" id="video-stage">
+            <button class="video-preview" id="video-play" type="button"
+              aria-label="Reproducir: ¿Qué es el Cifrado? Seguridad de Datos Explicada">
+              <img src="https://i.ytimg.com/vi/pwpcgl0AzM4/hqdefault.jpg" alt="" loading="lazy">
+              <span class="video-play-button" aria-hidden="true">▶</span>
+              <span class="video-preview-title">
+                ¿Qué es el Cifrado?
+                <small>Seguridad de Datos Explicada</small>
+              </span>
+            </button>
+          </div>
+
+          <div class="guide-offline is-hidden" id="guide-offline">
+            <p class="eyebrow">GUÍA SIN CONEXIÓN</p>
+            <h2>¿Qué hace el cifrado?</h2>
+            <ol>
+              <li>Tu mensaje o archivo se convierte en datos protegidos.</li>
+              <li>AES-GCM cifra y verifica que no se haya alterado el contenido.</li>
+              <li>Solo con la contraseña correcta puedes recuperar el contenido original.</li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div id="platform-view" class="is-hidden">
+      <section class="page-heading" id="intro-section">
+        <div>
+          <p class="eyebrow">ÁREA DE TRABAJO</p>
+          <h1>Protección de información</h1>
+          <p>Selecciona el tipo de contenido y la operación que deseas realizar.</p>
+        </div>
+        <div class="platform-status">
+          <span class="status-indicator"></span>
+          Sistema disponible 24/7
+        </div>
+      </section>
+
+      <section class="workspace" id="encrypt-view" aria-label="Herramientas de cifrado">
+        <nav class="tabs" role="tablist" aria-label="Tipo de contenido">
+          <button class="tab is-active" id="text-tab" role="tab" aria-selected="true" aria-controls="text-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 6.5h14M5 12h14M5 17.5h9" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" />
+            </svg>
+            Texto
+          </button>
+          <button class="tab" id="file-tab" role="tab" aria-selected="false" aria-controls="file-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6.5 3.8h7l4 4v12.4H6.5V3.8Z" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linejoin="round" />
+              <path d="M13.5 3.8v4h4M9 12h6M9 15.5h6" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" />
+            </svg>
+            Archivo
+          </button>
+        </nav>
+
+        <section class="panel" id="text-panel" role="tabpanel" aria-labelledby="text-tab">
+          <div class="panel-heading">
+            <div class="conversion-title">
+              <span class="conversion-icon text-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 6.5h14M5 12h14M5 17.5h9" />
+                </svg>
+              </span>
+              <div>
+                <h2>Procesamiento de texto</h2>
+                <p>Cifra o recupera mensajes mediante una contraseña.</p>
+              </div>
+            </div>
+            <div class="mode-switch" role="group" aria-label="Operación de texto">
+              <button class="mode-button is-selected" data-mode="encrypt" type="button">
+                Cifrar
+              </button>
+              <button class="mode-button" data-mode="decrypt" type="button">
+                Descifrar
+              </button>
+            </div>
+          </div>
+
+          <div class="form-content">
+            <label class="field-label" for="message">Mensaje</label>
+            <textarea id="message" rows="5" placeholder="Escribe el mensaje que quieres proteger..."
+              maxlength="250"></textarea>
+            <div class="field-meta">
+              <span id="message-hint">Hasta 250 caracteres</span>
+              <span id="character-count">0 / 250</span>
+            </div>
+
+            <label class="field-label password-label" for="text-password">
+              Contraseña de cifrado
+            </label>
+            <input id="text-password" type="password" autocomplete="off" placeholder="Ingresa tu contraseña">
+            <p class="password-hint" id="text-password-hint">
+              Usa al menos 8 caracteres para cifrar.
+            </p>
+
+            <div class="action-row">
+              <button class="primary-button" id="text-submit" type="button">
+                <span id="text-submit-label">Cifrar mensaje</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <p class="inline-feedback" id="text-feedback" aria-live="polite"></p>
+            </div>
+
+            <section class="result-card is-hidden" id="text-result-wrap" aria-label="Resultado">
+              <div class="result-heading">
+                <span id="text-result-label">Mensaje cifrado</span>
+                <button class="text-button" id="copy-result" type="button">Copiar</button>
+              </div>
+              <pre id="text-result"></pre>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel is-hidden" id="file-panel" role="tabpanel" aria-labelledby="file-tab" aria-hidden="true">
+          <div class="panel-heading">
+            <div class="conversion-title">
+              <span class="conversion-icon file-icon-heading" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M6.5 3.8h7l4 4v12.4H6.5V3.8Z" />
+                  <path d="M13.5 3.8v4h4M9 12h6M9 15.5h6" />
+                </svg>
+              </span>
+              <div>
+                <h2>Procesamiento de archivos</h2>
+                <p>Protege documentos y descarga el resultado en tu equipo.</p>
+              </div>
+            </div>
+            <div class="mode-switch" role="group" aria-label="Operación de archivo">
+              <button class="mode-button is-selected" data-mode="encrypt" type="button">
+                Cifrar
+              </button>
+              <button class="mode-button" data-mode="decrypt" type="button">
+                Descifrar
+              </button>
+            </div>
+          </div>
+
+          <div class="form-content">
+            <label class="drop-zone" id="drop-zone" for="file-input">
+              <input id="file-input" type="file" accept=".pdf,.docx,.xlsx,.txt">
+              <span class="upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none">
+                  <path d="M16 21V8m0 0-5 5m5-5 5 5M7 20v5h18v-5" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <strong>Arrastra un archivo o selecciónalo desde tu equipo</strong>
+              <span class="drop-description" id="file-types">
+                PDF, DOCX, XLSX o TXT <i>·</i> Máximo 4 MB
+              </span>
+              <span class="secondary-button">Seleccionar archivo</span>
+            </label>
+
+            <div class="selected-file is-hidden" id="selected-file">
+              <span class="file-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M6 3.8h7l5 5v11.4H6V3.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                  <path d="M13 3.8v5h5M9 13h6m-6 3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                </svg>
+              </span>
+              <span class="selected-file-details">
+                <strong id="file-name"></strong>
+                <small id="file-size"></small>
+              </span>
+              <button class="remove-file" id="remove-file" type="button" aria-label="Quitar archivo">×</button>
+            </div>
+
+            <label class="field-label password-label" for="file-password">
+              Contraseña de cifrado
+            </label>
+            <input id="file-password" type="password" autocomplete="off" placeholder="Ingresa tu contraseña">
+            <p class="password-hint" id="file-password-hint">
+              Usa al menos 8 caracteres para cifrar.
+            </p>
+
+            <div class="action-row file-action-row">
+              <button class="primary-button" id="file-submit" type="button" disabled>
+                <span id="file-submit-label">Cifrar archivo</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <p class="inline-feedback" id="file-feedback" aria-live="polite"></p>
+            </div>
+            <p class="file-note">
+              <span aria-hidden="true">✓</span>
+              Tu contraseña de cifrado no se guarda ni se comparte.
+            </p>
+          </div>
+        </section>
+      </section>
+
+      <section class="faq-section" id="faq-section" aria-labelledby="faq-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">INFORMACIÓN</p>
+            <h2 id="faq-title">Preguntas frecuentes</h2>
+          </div>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>¿Qué algoritmo se utiliza?</summary>
+            <p>AES-256-GCM con claves derivadas mediante Scrypt.</p>
+          </details>
+          <details class="faq-item">
+            <summary>¿Qué tan segura es la encriptación?</summary>
+            <p>Detecta contraseñas incorrectas y modificaciones del contenido cifrado. Usa una contraseña segura y
+              única.</p>
+          </details>
+          <details class="faq-item">
+            <summary>¿Cómo comparto la contraseña de forma segura?</summary>
+            <p>Compártela por un canal distinto al que usaste para enviar el archivo cifrado.</p>
+          </details>
+          <details class="faq-item">
+            <summary>¿Mis datos se guardan?</summary>
+            <p>El historial conserva el contenido cifrado. Las contraseñas de cifrado no se guardan.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="workspace history-view is-hidden" id="history-view" aria-labelledby="history-title">
+        <div class="history-heading">
+          <div class="conversion-title">
+            <span class="conversion-icon history-icon" aria-hidden="true">◷</span>
+            <div>
+              <p class="eyebrow">TUS ELEMENTOS CIFRADOS</p>
+              <h2 id="history-title">Historial de actividad</h2>
+              <p>Consulta los elementos que has cifrado en esta cuenta.</p>
+            </div>
+          </div>
+        </div>
+
+        <form class="history-unlock" id="history-unlock-form">
+          <label class="field-label" for="history-account-password">
+            Confirma la contraseña de tu cuenta para ver el historial
+          </label>
+          <div class="history-unlock-row">
+            <input id="history-account-password" type="password" autocomplete="current-password" required
+              placeholder="Contraseña de la cuenta">
+            <button class="primary-button" type="submit">Ver historial</button>
+          </div>
+          <p class="inline-feedback" id="history-feedback" aria-live="polite"></p>
+        </form>
+
+        <div class="history-results is-hidden" id="history-results">
+          <div class="history-list" id="history-list"></div>
+          <section class="history-preview is-hidden" id="history-preview" aria-live="polite"></section>
+          <p class="history-expiry">
+            El acceso al historial se bloqueará automáticamente después de 5 minutos.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog class="confirm-dialog" id="logout-dialog" aria-labelledby="logout-dialog-title"
+    aria-describedby="logout-dialog-description">
+    <div class="confirm-dialog-icon" aria-hidden="true">↪</div>
+    <h2 id="logout-dialog-title">¿Cerrar sesión?</h2>
+    <p id="logout-dialog-description">
+      Tu sesión se cerrará en este dispositivo. Podrás volver a iniciar sesión cuando quieras.
+    </p>
+    <p class="inline-feedback confirm-dialog-feedback" id="logout-feedback" aria-live="polite"></p>
+    <div class="confirm-dialog-actions">
+      <button class="dialog-cancel" id="cancel-logout" type="button">
+        Seguir aquí
+      </button>
+      <button class="dialog-confirm" id="confirm-logout" type="button">
+        Cerrar sesión
+      </button>
+    </div>
+  </dialog>
+
+  <script src="/app.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,4 @@
+cryptography
+pypdf
+python-docx
+openpyxl
