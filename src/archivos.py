@@ -4,6 +4,22 @@ from cifrado import cifrar, descifrar
 from validaciones import validar_archivo, MAX_BYTES
 
 
+def _guardar_sin_sobrescribir(destino, contenido):
+    candidato = destino
+    intento = 0
+    while True:
+        try:
+            with candidato.open("xb") as archivo:
+                archivo.write(contenido)
+            return candidato
+        except FileExistsError:
+            intento += 1
+            sufijo = " (recuperado)" if intento == 1 else f" (recuperado {intento})"
+            candidato = destino.with_name(
+                f"{destino.stem}{sufijo}{destino.suffix}"
+            )
+
+
 def cifrar_archivo(ruta, password):
     archivo = Path(ruta)
 
@@ -38,12 +54,4 @@ def descifrar_archivo(ruta, password):
     resultado = descifrar(archivo.read_bytes(), password)
 
     destino = archivo.with_name(archivo.stem)
-
-    if destino.exists():
-        raise FileExistsError(
-            "El archivo de destino ya existe. No se sobrescribió."
-        )
-
-    destino.write_bytes(resultado)
-
-    return destino
+    return _guardar_sin_sobrescribir(destino, resultado)
