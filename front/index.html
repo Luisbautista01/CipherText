@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f6fa">
   <title>CipherText | Seguridad de la información</title>
-  <link rel="stylesheet" href="/styles.css?v=enterprise-1">
+  <link rel="stylesheet" href="/styles.css?v=mobile-layout-1">
 </head>
 
 <body>
@@ -131,6 +131,9 @@
           </div>
         </aside>
       </div>
+      <p class="auth-algorithm-note">
+        Cifrado con <strong>AES-256-GCM (Advanced Encryption Standard)</strong>; las claves se derivan de forma segura mediante <strong>Scrypt</strong>.
+      </p>
     </section>
 
     <div id="platform-view" class="is-hidden">
@@ -252,33 +255,49 @@
           </div>
 
           <div class="form-content">
-            <label class="drop-zone" id="drop-zone" for="file-input">
+            <div class="drop-zone" id="drop-zone">
               <input id="file-input" type="file" accept=".pdf,.docx,.xlsx,.txt">
-              <span class="upload-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none">
-                  <path d="M16 21V8m0 0-5 5m5-5 5 5M7 20v5h18v-5" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <strong>Arrastra un archivo o selecciónalo desde tu equipo</strong>
-              <span class="drop-description" id="file-types">
-                PDF, DOCX, XLSX o TXT <i>·</i> Máximo 4 MB
-              </span>
-              <span class="secondary-button">Seleccionar archivo</span>
-            </label>
+              <div class="drop-instructions" id="drop-instructions">
+                <span class="upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none">
+                    <path d="M16 21V8m0 0-5 5m5-5 5 5M7 20v5h18v-5" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <strong>Arrastra un archivo o selecciónalo desde tu equipo</strong>
+                <span class="drop-description" id="file-types">
+                  PDF, DOCX, XLSX o TXT <i>·</i> Máximo 4 MB
+                </span>
+              </div>
+              <label class="secondary-button" id="select-file-button" for="file-input">
+                Seleccionar archivo
+              </label>
 
-            <div class="selected-file is-hidden" id="selected-file">
-              <span class="file-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M6 3.8h7l5 5v11.4H6V3.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-                  <path d="M13 3.8v5h5M9 13h6m-6 3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-                </svg>
-              </span>
-              <span class="selected-file-details">
-                <strong id="file-name"></strong>
-                <small id="file-size"></small>
-              </span>
-              <button class="remove-file" id="remove-file" type="button" aria-label="Quitar archivo">×</button>
+              <div class="selected-file is-hidden" id="selected-file">
+                <span class="file-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M6 3.8h7l5 5v11.4H6V3.8Z" stroke="currentColor" stroke-width="1.7"
+                      stroke-linejoin="round" />
+                    <path d="M13 3.8v5h5M9 13h6m-6 3h6" stroke="currentColor" stroke-width="1.7"
+                      stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span class="selected-file-details">
+                  <strong id="file-name"></strong>
+                  <small id="file-size"></small>
+                </span>
+                <div class="selected-file-actions">
+                  <button class="file-preview-button" id="preview-file" type="button">
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M1.8 10s2.8-5 8.2-5 8.2 5 8.2 5-2.8 5-8.2 5-8.2-5-8.2-5Z" />
+                      <circle cx="10" cy="10" r="2.2" />
+                    </svg>
+                    Preview
+                  </button>
+                  <button class="change-file" id="change-file" type="button">Cambiar archivo</button>
+                  <button class="remove-file" id="remove-file" type="button">Eliminar</button>
+                </div>
+              </div>
             </div>
 
             <label class="field-label password-label" for="file-password">
@@ -299,10 +318,6 @@
               </button>
               <p class="inline-feedback" id="file-feedback" aria-live="polite"></p>
             </div>
-            <p class="file-note">
-              <span aria-hidden="true">✓</span>
-              Tu contraseña de cifrado no se guarda ni se comparte.
-            </p>
           </div>
         </section>
       </section>
@@ -388,7 +403,36 @@
     </div>
   </dialog>
 
-  <script src="/app.js" defer></script>
+  <dialog class="file-preview-dialog" id="file-preview-dialog" aria-labelledby="file-preview-title"
+    aria-describedby="file-preview-description">
+    <div class="file-preview-header">
+      <div>
+        <p class="eyebrow">VISTA PREVIA</p>
+        <h2 id="file-preview-title">Vista previa del archivo</h2>
+        <p id="file-preview-description"></p>
+      </div>
+      <button class="file-preview-close" id="close-file-preview" type="button" aria-label="Cerrar vista previa">
+        &times;
+      </button>
+    </div>
+    <div class="file-preview-content" id="file-preview-content"></div>
+  </dialog>
+
+  <dialog class="operation-confirm-dialog" id="operation-confirm-dialog"
+    aria-labelledby="operation-confirm-title" aria-describedby="operation-confirm-description">
+    <div class="operation-confirm-icon" aria-hidden="true">?</div>
+    <h2 id="operation-confirm-title"></h2>
+    <p id="operation-confirm-description"></p>
+    <pre class="operation-confirm-preview is-hidden" id="operation-confirm-preview"></pre>
+    <p class="operation-confirm-note is-hidden" id="operation-confirm-note"></p>
+    <div class="operation-confirm-actions">
+      <button class="operation-cancel" id="cancel-operation" type="button"></button>
+      <button class="operation-accept" id="accept-operation" type="button">Sí, no hay problema</button>
+    </div>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script src="/app.js?v=action-confirmation-toasts-1" defer></script>
 </body>
 
 </html>

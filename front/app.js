@@ -17,13 +17,31 @@ const textResultLabel = document.querySelector("#text-result-label");
 const copyResult = document.querySelector("#copy-result");
 const fileInput = document.querySelector("#file-input");
 const dropZone = document.querySelector("#drop-zone");
+const dropInstructions = document.querySelector("#drop-instructions");
+const selectFileButton = document.querySelector("#select-file-button");
 const selectedFile = document.querySelector("#selected-file");
 const fileName = document.querySelector("#file-name");
 const fileSize = document.querySelector("#file-size");
+const previewFile = document.querySelector("#preview-file");
+const filePreviewDialog = document.querySelector("#file-preview-dialog");
+const filePreviewTitle = document.querySelector("#file-preview-title");
+const filePreviewDescription = document.querySelector("#file-preview-description");
+const filePreviewContent = document.querySelector("#file-preview-content");
+const closeFilePreview = document.querySelector("#close-file-preview");
+const operationConfirmDialog = document.querySelector("#operation-confirm-dialog");
+const operationConfirmTitle = document.querySelector("#operation-confirm-title");
+const operationConfirmDescription = document.querySelector("#operation-confirm-description");
+const operationConfirmPreview = document.querySelector("#operation-confirm-preview");
+const operationConfirmNote = document.querySelector("#operation-confirm-note");
+const cancelOperation = document.querySelector("#cancel-operation");
+const acceptOperation = document.querySelector("#accept-operation");
+const toastRegion = document.querySelector("#toast-region");
 const filePassword = document.querySelector("#file-password");
 const fileSubmit = document.querySelector("#file-submit");
 const fileSubmitLabel = document.querySelector("#file-submit-label");
 const fileFeedback = document.querySelector("#file-feedback");
+const changeFile = document.querySelector("#change-file");
+const removeFile = document.querySelector("#remove-file");
 const authView = document.querySelector("#auth-view");
 const platformView = document.querySelector("#platform-view");
 const authForm = document.querySelector("#auth-form");
@@ -58,10 +76,27 @@ let fileMode = "encrypt";
 let authMode = "login";
 let selectedUpload = null;
 let textResultValue = "";
+let filePreviewUrl = "";
+let toastTimeout;
+let textLimitToastShown = false;
 
 function setFeedback(element, message, kind = "") {
   element.textContent = message;
   element.className = `inline-feedback${kind ? ` ${kind}` : ""}`;
+}
+
+function showToast(message, kind = "success") {
+  window.clearTimeout(toastTimeout);
+  const toast = document.createElement("div");
+  toast.className = `toast${kind === "error" ? " toast-error" : ""}`;
+  toast.textContent = message;
+  toastRegion.replaceChildren(toast);
+  toastTimeout = window.setTimeout(() => {
+    toast.classList.add("toast-hiding");
+    window.setTimeout(() => {
+      if (toast.parentElement === toastRegion) toastRegion.replaceChildren();
+    }, 250);
+  }, 3200);
 }
 
 function showSignedOut() {
@@ -164,6 +199,7 @@ authForm.addEventListener("submit", async (event) => {
     const result = await postJson(`/api/auth/${authMode}`, { username, password });
     authPassword.value = "";
     showSignedIn(result.user);
+    showToast(authMode === "register" ? "Cuenta creada correctamente." : "Sesión iniciada.");
   } catch (error) {
     setFeedback(authFeedback, error.message, "error");
   } finally {
@@ -201,6 +237,7 @@ confirmLogout.addEventListener("click", async () => {
     await postJson("/api/auth/logout", {});
     logoutDialog.close();
     showSignedOut();
+    showToast("Sesión cerrada correctamente.");
   } catch (error) {
     setFeedback(logoutFeedback, error.message, "error");
   } finally {
@@ -236,6 +273,7 @@ fileTab.addEventListener("click", () => showPanel("file"));
 
 function updateTextMode(mode) {
   textMode = mode;
+  textLimitToastShown = false;
   document.querySelectorAll("#text-panel .mode-button").forEach((button) => {
     button.classList.toggle("is-selected", button.dataset.mode === mode);
   });
@@ -264,9 +302,21 @@ function updateCharacterCount() {
   const count = [...messageInput.value].length;
   characterCount.textContent = `${count} / 250`;
   characterCount.classList.toggle("over-limit", count > 250);
+  if (count <= 250) textLimitToastShown = false;
 }
 
 messageInput.addEventListener("input", updateCharacterCount);
+textPassword.addEventListener("input", () => {
+  if (
+    textMode === "encrypt"
+    && textPassword.value
+    && [...messageInput.value].length > 250
+    && !textLimitToastShown
+  ) {
+    showToast("El mensaje supera el límite permitido de 250 caracteres.", "error");
+    textLimitToastShown = true;
+  }
+});
 
 async function postJson(path, payload) {
   let response;
@@ -295,14 +345,47 @@ async function postJson(path, payload) {
   return result;
 }
 
+function confirmOperation({
+  title,
+  description,
+  preview,
+  note,
+  cancelLabel = "No, revisar",
+  acceptLabel = "Sí, no hay problema",
+}) {
+  operationConfirmTitle.textContent = title;
+  operationConfirmDescription.textContent = description;
+  operationConfirmPreview.textContent = preview;
+  operationConfirmPreview.classList.toggle("is-hidden", !preview);
+  operationConfirmNote.textContent = note || "";
+  operationConfirmNote.classList.toggle("is-hidden", !note);
+  cancelOperation.textContent = cancelLabel;
+  acceptOperation.textContent = acceptLabel;
+
+  return new Promise((resolve) => {
+    operationConfirmDialog.addEventListener(
+      "close",
+      () => resolve(operationConfirmDialog.returnValue === "confirm"),
+      { once: true },
+    );
+    operationConfirmDialog.showModal();
+  });
+}
+
+cancelOperation.addEventListener("click", () => operationConfirmDialog.close("cancel"));
+acceptOperation.addEventListener("click", () => operationConfirmDialog.close("confirm"));
+
 textSubmit.addEventListener("click", async () => {
   const text = messageInput.value;
-  if (textMode === "encrypt" && !text) {
+  if (!text) {
     setFeedback(textFeedback, "Escribe un mensaje antes de continuar.", "error");
     return;
   }
   if (textMode === "encrypt" && [...text].length > 250) {
-    setFeedback(textFeedback, "El mensaje supera el límite permitido.", "error");
+    const message = "El mensaje supera el límite permitido de 250 caracteres.";
+    setFeedback(textFeedback, message, "error");
+    showToast(message, "error");
+    textLimitToastShown = true;
     return;
   }
   if (!textPassword.value) {
@@ -310,26 +393,42 @@ textSubmit.addEventListener("click", async () => {
     return;
   }
 
+  const mode = textMode;
+  const visibleText = text.length > 1200 ? `${text.slice(0, 1200)}…` : text;
+  const confirmed = await confirmOperation({
+    title: `¿Confirmas ${mode === "encrypt" ? "cifrar" : "descifrar"} este texto?`,
+    description: "Revisa el contenido antes de continuar.",
+    preview: visibleText,
+    note: text.length > 1200
+      ? "Se muestra solo el inicio. La operación incluirá el texto completo."
+      : "",
+    cancelLabel: "No, revisar texto",
+  });
+  if (!confirmed) return;
+
   textSubmit.disabled = true;
-  textSubmitLabel.textContent = textMode === "encrypt" ? "Cifrando..." : "Descifrando...";
+  textSubmitLabel.textContent = mode === "encrypt" ? "Cifrando..." : "Descifrando...";
   setFeedback(textFeedback, "");
   const password = textPassword.value;
   try {
-    const result = await postJson(`/api/text/${textMode}`, {
+    const result = await postJson(`/api/text/${mode}`, {
       text,
       password,
     });
     textResultValue = result.result;
     textResult.textContent = result.result;
-    textResultLabel.textContent = textMode === "encrypt" ? "Mensaje cifrado" : "Contenido original";
+    textResultLabel.textContent = mode === "encrypt" ? "Mensaje cifrado" : "Contenido original";
     textResultWrap.classList.remove("is-hidden");
     setFeedback(
       textFeedback,
-      textMode === "encrypt"
+      mode === "encrypt"
         ? "El mensaje se cifró correctamente."
         : "El contenido original se recuperó correctamente.",
       "success",
     );
+    showToast(mode === "encrypt"
+      ? "El mensaje se cifró correctamente."
+      : "El contenido original se recuperó correctamente.");
   } catch (error) {
     setFeedback(textFeedback, error.message, "error");
   } finally {
@@ -343,6 +442,7 @@ copyResult.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(textResultValue);
     copyResult.textContent = "Copiado";
+    showToast("Resultado copiado.");
     window.setTimeout(() => { copyResult.textContent = "Copiar"; }, 1500);
   } catch {
     setFeedback(textFeedback, "No fue posible copiar el resultado.", "error");
@@ -368,7 +468,22 @@ function updateFileMode(mode) {
 }
 
 document.querySelectorAll("#file-panel .mode-button").forEach((button) => {
-  button.addEventListener("click", () => updateFileMode(button.dataset.mode));
+  button.addEventListener("click", async () => {
+    const nextMode = button.dataset.mode;
+    if (nextMode === fileMode) return;
+    if (selectedUpload) {
+      const confirmed = await confirmOperation({
+        title: "¿Cambiar operación y quitar el archivo?",
+        description: "Al cambiar entre cifrado y descifrado se quitará el archivo seleccionado.",
+        preview: `Archivo actual: ${selectedUpload.name}`,
+        cancelLabel: "No, conservar archivo",
+        acceptLabel: "Cambiar operación",
+      });
+      if (!confirmed) return;
+    }
+    updateFileMode(nextMode);
+    showToast(nextMode === "encrypt" ? "Modo de cifrado seleccionado." : "Modo de descifrado seleccionado.");
+  });
 });
 
 function formatBytes(bytes) {
@@ -381,37 +496,292 @@ function selectFile(file) {
   if (!file) return;
   const extension = `.${file.name.split(".").pop().toLowerCase()}`;
   if (fileMode === "encrypt" && !ALLOWED_EXTENSIONS.has(extension)) {
-    clearSelectedFile();
+    fileInput.value = "";
     setFeedback(fileFeedback, "Selecciona un archivo PDF, DOCX, XLSX o TXT.", "error");
+    showToast("Formato de archivo no permitido.", "error");
     return;
   }
   if (fileMode === "decrypt" && extension !== ".enc") {
-    clearSelectedFile();
+    fileInput.value = "";
     setFeedback(fileFeedback, "Selecciona un archivo .enc.", "error");
+    showToast("Para descifrar, selecciona un archivo .enc.", "error");
     return;
   }
   if (fileMode === "encrypt" && file.size > MAX_FILE_BYTES) {
-    clearSelectedFile();
+    fileInput.value = "";
     setFeedback(fileFeedback, "El archivo supera el límite de 4 MB.", "error");
+    showToast("El archivo supera el límite de 4 MB.", "error");
     return;
   }
+  const replacing = Boolean(selectedUpload);
   selectedUpload = file;
   fileName.textContent = file.name;
   fileSize.textContent = formatBytes(file.size);
+  dropInstructions.classList.add("is-hidden");
+  selectFileButton.classList.add("is-hidden");
   selectedFile.classList.remove("is-hidden");
+  dropZone.classList.add("has-file");
   fileSubmit.disabled = false;
   setFeedback(fileFeedback, "");
+  showToast(
+    replacing
+      ? "Archivo cambiado. El formato está permitido y no supera los 4 MB."
+      : "Archivo válido: formato permitido y tamaño dentro del límite de 4 MB.",
+  );
 }
 
 function clearSelectedFile() {
   selectedUpload = null;
   fileInput.value = "";
+  dropInstructions.classList.remove("is-hidden");
+  selectFileButton.classList.remove("is-hidden");
   selectedFile.classList.add("is-hidden");
+  dropZone.classList.remove("has-file");
   fileSubmit.disabled = true;
 }
 
+fileInput.addEventListener("click", () => {
+  fileInput.value = "";
+});
 fileInput.addEventListener("change", () => selectFile(fileInput.files[0]));
-document.querySelector("#remove-file").addEventListener("click", clearSelectedFile);
+
+changeFile.addEventListener("click", async () => {
+  if (!selectedUpload) return;
+  const confirmed = await confirmOperation({
+    title: "¿Cambiar el archivo seleccionado?",
+    description: "Se abrirá el selector para elegir otro archivo. Si cancelas, se conservará el actual.",
+    preview: `Archivo actual: ${selectedUpload.name}`,
+    cancelLabel: "No, conservar archivo",
+    acceptLabel: "Elegir otro archivo",
+  });
+  if (confirmed) fileInput.click();
+});
+
+removeFile.addEventListener("click", async () => {
+  if (!selectedUpload) return;
+  const file = selectedUpload;
+  const confirmed = await confirmOperation({
+    title: "¿Eliminar el archivo seleccionado?",
+    description: "El archivo se quitará del área de trabajo. El original en tu equipo no se eliminará.",
+    preview: `Archivo: ${file.name}\nTamaño: ${formatBytes(file.size)}`,
+    cancelLabel: "No, conservar archivo",
+    acceptLabel: "Sí, quitar archivo",
+  });
+  if (!confirmed) return;
+  clearSelectedFile();
+  setFeedback(fileFeedback, "");
+  showToast("Archivo quitado del área de trabajo.");
+});
+
+function showFilePreviewNotice(title, message) {
+  const notice = document.createElement("div");
+  notice.className = "file-preview-notice";
+  notice.innerHTML = `
+    <span class="file-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M6 3.8h7l5 5v11.4H6V3.8Z" stroke="currentColor" stroke-width="1.7"
+          stroke-linejoin="round" />
+        <path d="M13 3.8v5h5M9 13h6m-6 3h6" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" />
+      </svg>
+    </span>
+    <strong></strong>
+    <p></p>
+  `;
+  notice.querySelector("strong").textContent = title;
+  notice.querySelector("p").textContent = message;
+  filePreviewContent.replaceChildren(notice);
+}
+
+function closePreviewUrl() {
+  if (filePreviewUrl) {
+    URL.revokeObjectURL(filePreviewUrl);
+    filePreviewUrl = "";
+  }
+}
+
+function findZipEntry(bytes, entryName) {
+  const view = new DataView(bytes);
+  const minimumEnd = Math.max(0, bytes.byteLength - 65_557);
+  let endOffset = -1;
+  for (let offset = bytes.byteLength - 22; offset >= minimumEnd; offset -= 1) {
+    if (view.getUint32(offset, true) === 0x06054b50) {
+      endOffset = offset;
+      break;
+    }
+  }
+  if (endOffset < 0) throw new Error("El documento no tiene una estructura ZIP válida.");
+
+  const entryCount = view.getUint16(endOffset + 10, true);
+  let offset = view.getUint32(endOffset + 16, true);
+  const decoder = new TextDecoder();
+  for (let index = 0; index < entryCount; index += 1) {
+    if (view.getUint32(offset, true) !== 0x02014b50) {
+      throw new Error("No se pudo leer la estructura del documento.");
+    }
+    const compression = view.getUint16(offset + 10, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    const localOffset = view.getUint32(offset + 42, true);
+    const nameStart = offset + 46;
+    const name = decoder.decode(new Uint8Array(bytes, nameStart, nameLength));
+
+    if (name === entryName) {
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+      return {
+        compression,
+        content: new Uint8Array(bytes, dataOffset, compressedSize),
+      };
+    }
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+  return null;
+}
+
+async function readZipText(bytes, entryName) {
+  const entry = findZipEntry(bytes, entryName);
+  if (!entry) return null;
+  if (entry.compression === 0) return new TextDecoder().decode(entry.content);
+  if (entry.compression !== 8 || typeof DecompressionStream === "undefined") {
+    throw new Error("Este navegador no permite descomprimir este documento para la vista previa.");
+  }
+  const stream = new Blob([entry.content]).stream().pipeThrough(
+    new DecompressionStream("deflate-raw"),
+  );
+  return new Response(stream).text();
+}
+
+function parseOfficeXml(xml, description) {
+  const parsed = new DOMParser().parseFromString(xml, "application/xml");
+  if (parsed.querySelector("parsererror")) {
+    throw new Error(`No fue posible leer el contenido XML del ${description}.`);
+  }
+  return parsed;
+}
+
+async function previewDocx(file) {
+  const bytes = await file.arrayBuffer();
+  const xml = await readZipText(bytes, "word/document.xml");
+  if (!xml) throw new Error("No se encontró el contenido principal del documento.");
+  const documentXml = parseOfficeXml(xml, "documento");
+  const paragraphs = [...documentXml.getElementsByTagNameNS("*", "p")].map((paragraph) =>
+    [...paragraph.getElementsByTagNameNS("*", "t")]
+      .map((text) => text.textContent)
+      .join(""),
+  );
+  return paragraphs.filter(Boolean).join("\n") || "El documento no contiene texto para mostrar.";
+}
+
+async function previewXlsx(file) {
+  const bytes = await file.arrayBuffer();
+  const workbookXml = await readZipText(bytes, "xl/workbook.xml");
+  const relationXml = await readZipText(bytes, "xl/_rels/workbook.xml.rels");
+  if (!workbookXml || !relationXml) {
+    throw new Error("No se encontró la estructura de hojas de cálculo.");
+  }
+
+  const workbook = parseOfficeXml(workbookXml, "hoja de cálculo");
+  const relations = parseOfficeXml(relationXml, "relaciones del libro");
+  const firstSheet = workbook.getElementsByTagNameNS("*", "sheet")[0];
+  if (!firstSheet) return "El libro no contiene hojas para mostrar.";
+
+  const relationId = firstSheet.getAttributeNS(
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    "id",
+  );
+  const relation = [...relations.getElementsByTagNameNS("*", "Relationship")]
+    .find((item) => item.getAttribute("Id") === relationId);
+  if (!relation) throw new Error("No se pudo localizar la primera hoja.");
+  const sheetPath = `xl/${relation.getAttribute("Target").replace(/^\/?xl\//, "")}`;
+  const sheetXml = await readZipText(bytes, sheetPath);
+  if (!sheetXml) throw new Error("No se encontró el contenido de la primera hoja.");
+
+  const sharedStringsXml = await readZipText(bytes, "xl/sharedStrings.xml");
+  const sharedStrings = sharedStringsXml
+    ? [...parseOfficeXml(sharedStringsXml, "cadenas compartidas")
+      .getElementsByTagNameNS("*", "si")]
+      .map((item) => [...item.getElementsByTagNameNS("*", "t")]
+        .map((text) => text.textContent)
+        .join(""))
+    : [];
+  const sheet = parseOfficeXml(sheetXml, "primera hoja");
+  const rows = [...sheet.getElementsByTagNameNS("*", "row")].slice(0, 100).map((row) =>
+    [...row.getElementsByTagNameNS("*", "c")].slice(0, 20).map((cell) => {
+      const type = cell.getAttribute("t");
+      if (type === "inlineStr") {
+        return [...cell.getElementsByTagNameNS("*", "t")]
+          .map((text) => text.textContent)
+          .join("");
+      }
+      const value = cell.getElementsByTagNameNS("*", "v")[0]?.textContent ?? "";
+      return type === "s" ? sharedStrings[Number(value)] ?? "" : value;
+    }).join("\t"),
+  );
+  return rows.join("\n").trim() || "La primera hoja no contiene celdas para mostrar.";
+}
+
+async function openFilePreview() {
+  if (!selectedUpload) return;
+  closePreviewUrl();
+  filePreviewContent.replaceChildren();
+  filePreviewTitle.textContent = selectedUpload.name;
+  filePreviewDescription.textContent =
+    `${formatBytes(selectedUpload.size)} · ${selectedUpload.type || "Archivo local"}`;
+  filePreviewDialog.showModal();
+  showToast("Vista previa abierta.");
+
+  const extension = `.${selectedUpload.name.split(".").pop().toLowerCase()}`;
+  if (extension === ".enc") {
+    showFilePreviewNotice(
+      "Archivo cifrado",
+      "El contenido está protegido y no puede previsualizarse antes de descifrarlo.",
+    );
+    return;
+  }
+
+  try {
+    if (extension === ".pdf") {
+      filePreviewUrl = URL.createObjectURL(
+        new Blob([await selectedUpload.arrayBuffer()], { type: "application/pdf" }),
+      );
+      const frame = document.createElement("iframe");
+      frame.title = `Vista previa de ${selectedUpload.name}`;
+      frame.src = filePreviewUrl;
+      filePreviewContent.replaceChildren(frame);
+      return;
+    }
+
+    let content;
+    if (extension === ".txt") {
+      content = await selectedUpload.text();
+    } else if (extension === ".docx") {
+      content = await previewDocx(selectedUpload);
+    } else if (extension === ".xlsx") {
+      content = await previewXlsx(selectedUpload);
+    }
+
+    const preview = document.createElement("pre");
+    preview.className = "file-preview-text";
+    preview.textContent = content.slice(0, 50_000);
+    filePreviewContent.replaceChildren(preview);
+  } catch (error) {
+    showFilePreviewNotice(
+      "No se pudo generar la vista previa",
+      error.message || "El navegador no pudo leer el contenido de este archivo.",
+    );
+  }
+}
+
+previewFile.addEventListener("click", openFilePreview);
+closeFilePreview.addEventListener("click", () => filePreviewDialog.close());
+filePreviewDialog.addEventListener("close", closePreviewUrl);
+filePreviewDialog.addEventListener("click", (event) => {
+  if (event.target === filePreviewDialog) filePreviewDialog.close();
+});
 
 for (const eventName of ["dragenter", "dragover"]) {
   dropZone.addEventListener(eventName, (event) => {
@@ -425,7 +795,21 @@ for (const eventName of ["dragleave", "drop"]) {
     dropZone.classList.remove("is-dragging");
   });
 }
-dropZone.addEventListener("drop", (event) => selectFile(event.dataTransfer.files[0]));
+dropZone.addEventListener("drop", async (event) => {
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  if (selectedUpload) {
+    const confirmed = await confirmOperation({
+      title: "¿Reemplazar el archivo seleccionado?",
+      description: "El archivo actual se sustituirá por el que acabas de arrastrar.",
+      preview: `Actual: ${selectedUpload.name}\nNuevo: ${file.name}`,
+      cancelLabel: "No, conservar archivo",
+      acceptLabel: "Reemplazar archivo",
+    });
+    if (!confirmed) return;
+  }
+  selectFile(file);
+});
 
 function encodeBase64(bytes) {
   let binary = "";
@@ -459,25 +843,38 @@ fileSubmit.addEventListener("click", async () => {
     return;
   }
 
+  const file = selectedUpload;
+  const mode = fileMode;
+  const confirmed = await confirmOperation({
+    title: `¿Confirmas ${mode === "encrypt" ? "cifrar" : "descifrar"} este archivo?`,
+    description: "Verifica que hayas seleccionado el documento correcto.",
+    preview: `Archivo: ${file.name}\nTamaño: ${formatBytes(file.size)}`,
+    cancelLabel: "No, revisar archivo",
+  });
+  if (!confirmed) return;
+
   fileSubmit.disabled = true;
-  fileSubmitLabel.textContent = fileMode === "encrypt" ? "Cifrando..." : "Descifrando...";
+  fileSubmitLabel.textContent = mode === "encrypt" ? "Cifrando..." : "Descifrando...";
   setFeedback(fileFeedback, "");
   const password = filePassword.value;
   try {
-    const bytes = new Uint8Array(await selectedUpload.arrayBuffer());
-    const result = await postJson(`/api/files/${fileMode}`, {
-      name: selectedUpload.name,
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const result = await postJson(`/api/files/${mode}`, {
+      name: file.name,
       content: encodeBase64(bytes),
       password,
     });
     downloadBase64File(result.name, result.content);
     setFeedback(
       fileFeedback,
-      fileMode === "encrypt"
+      mode === "encrypt"
         ? "Archivo cifrado correctamente. La descarga comenzó."
         : "El contenido original se recuperó correctamente. La descarga comenzó.",
       "success",
     );
+    showToast(mode === "encrypt"
+      ? "Archivo cifrado. La descarga comenzó."
+      : "Archivo descifrado. La descarga comenzó.");
   } catch (error) {
     setFeedback(fileFeedback, error.message, "error");
   } finally {
@@ -533,6 +930,7 @@ historyUnlockForm.addEventListener("submit", async (event) => {
     displayHistory(result.entries);
     historyResults.classList.remove("is-hidden");
     setFeedback(historyFeedback, "Historial desbloqueado.", "success");
+    showToast("Historial desbloqueado.");
   } catch (error) {
     setFeedback(historyFeedback, error.message, "error");
   } finally {
@@ -585,6 +983,7 @@ function showHistoryPreview(entry) {
         historyPreview.append(download);
       }
       setFeedback(feedback, "Contenido original recuperado correctamente.", "success");
+      showToast("Vista previa recuperada correctamente.");
     } catch (error) {
       setFeedback(feedback, error.message, "error");
       content.classList.add("is-hidden");
